@@ -41,7 +41,7 @@ switch ($uri) {
     // === ROTAS NFe (Modelo 55) ===
     case '/api/gerar-nfe':
         if ($method === 'POST') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/GerarNFeController.php';
             $controller = new \NexoNFe\Controllers\GerarNFeController();
             $controller->handle();
@@ -53,7 +53,7 @@ switch ($uri) {
         
     case '/api/enviar-sefaz':
         if ($method === 'POST') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/EnviarSefazController.php';
             $controller = new \NexoNFe\Controllers\EnviarSefazController();
             $controller->handle();
@@ -65,7 +65,7 @@ switch ($uri) {
         
     case '/api/consultar-nfe':
         if ($method === 'GET') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/ConsultarNFeController.php';
             $controller = new \NexoNFe\Controllers\ConsultarNFeController();
             $controller->handle();
@@ -78,7 +78,7 @@ switch ($uri) {
     // === ROTAS NFC-e (Modelo 65) ===
     case '/api/gerar-nfce':
         if ($method === 'POST') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/GerarNFCeController.php';
             $controller = new \NexoNFe\Controllers\GerarNFCeController();
             $controller->handle();
@@ -90,7 +90,7 @@ switch ($uri) {
         
     case '/api/enviar-nfce-sefaz':
         if ($method === 'POST') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/EnviarNFCeSefazController.php';
             $controller = new \NexoNFe\Controllers\EnviarNFCeSefazController();
             $controller->handle();
@@ -102,7 +102,7 @@ switch ($uri) {
         
     case '/api/consultar-nfce':
         if ($method === 'GET') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/ConsultarNFCeController.php';
             $controller = new \NexoNFe\Controllers\ConsultarNFCeController();
             $controller->handle();
@@ -114,7 +114,7 @@ switch ($uri) {
         
     case '/api/cancelar-nfce':
         if ($method === 'POST') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/CancelarNFCeController.php';
             $controller = new \NexoNFe\Controllers\CancelarNFCeController();
             $controller->handle();
@@ -126,7 +126,7 @@ switch ($uri) {
         
     case '/api/gerar-qrcode-nfce':
         if ($method === 'POST') {
-            // // verificarToken(); // Autenticação desabilitada - não obrigatória para NFe // Autenticação desabilitada para testes
+            verificarToken();
             require_once '../src/Controllers/GerarQRCodeNFCeController.php';
             $controller = new \NexoNFe\Controllers\GerarQRCodeNFCeController();
             $controller->handle();
