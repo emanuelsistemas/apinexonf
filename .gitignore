@@ -1,0 +1,45 @@
+# Dependências
+/vendor/
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.production
+
+# Logs
+/storage/logs/*.log
+/storage/temp/*
+
+# Cache
+/storage/cache/*
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Certificados (segurança)
+*.pfx
+*.p12
+*.pem
+
+# Backups
+*.backup
+*.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Composer
+composer.phar
+
+# Manter estrutura de diretórios
+!storage/logs/.gitkeep
+!storage/temp/.gitkeep
+!storage/cache/.gitkeep
