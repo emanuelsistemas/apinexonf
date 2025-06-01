@@ -32,7 +32,7 @@ class NFeService
         ];
     }
     
-    public function gerarNFe($empresa, $cliente, $produtos, $totais, $pagamentos = [])
+    public function gerarNFe($empresa, $cliente, $produtos, $totais, $pagamentos = [], $numeroNFe = null)
     {
         try {
             LogHelper::info('Iniciando geração de NFe', ['empresa_id' => $empresa['id']]);
@@ -62,10 +62,21 @@ class NFeService
             
             // 8. Gerar XML
             $xml = $this->make->monta();
+
+            // Verificar se houve erros na geração
+            if (!$xml) {
+                $errors = $this->make->getErrors();
+                error_log("Erros NFePHP: " . json_encode($errors));
+                throw new Exception("Existem erros nas tags. Detalhes: " . json_encode($errors));
+            }
+
             $chave = $this->make->getChave();
             
             // 9. Salvar XML
             $this->salvarXML($xml, $chave);
+
+            // 10. Gerar PDF (DANFE)
+            $pdfPath = $this->gerarPDF($xml, $chave);
             
             LogHelper::info('NFe gerada com sucesso', ['chave' => $chave]);
             
@@ -73,7 +84,8 @@ class NFeService
                 'sucesso' => true,
                 'xml' => $xml,
                 'chave' => $chave,
-                'numero_nfe' => $this->getProximoNumero()
+                'numero_nfe' => $numeroNFe ?? 1,
+                'pdf_path' => isset($pdfPath) ? $pdfPath : null
             ];
             
         } catch (Exception $e) {
@@ -87,7 +99,7 @@ class NFeService
         }
     }
     
-    private function configurarNFe($empresa, $totais)
+    private function configurarNFe($empresa, $totais, $numeroNFe = null)
     {
         // Tag principal
         $std = new \stdClass();
@@ -101,7 +113,7 @@ class NFeService
         $std->natOp = $totais['natureza_operacao'] ?? 'VENDA';
         $std->mod = 55; // NFe
         $std->serie = $this->config['serie_nfe'];
-        $std->nNF = $this->getProximoNumero();
+        $std->nNF = $numeroNFe ?? 1;
         $std->dhEmi = date('Y-m-d\TH:i:sP');
         $std->tpNF = 1; // Saída
         $std->idDest = 1; // Operação interna
@@ -134,11 +146,11 @@ class NFeService
         $std = new \stdClass();
         $std->xLgr = $empresa['address'];
         $std->nro = $empresa['numero_endereco'] ?? 'S/N';
-        $std->xBairro = $empresa['bairro'];
+        $std->xBairro = $empresa['bairro'] ?? 'Centro';
         $std->cMun = $empresa['codigo_municipio'] ?? 3550308;
-        $std->xMun = $empresa['city'];
-        $std->UF = $empresa['state'];
-        $std->CEP = preg_replace('/\D/', '', $empresa['zip_code']);
+        $std->xMun = $empresa['city'] ?? 'São Paulo';
+        $std->UF = $empresa['state'] ?? 'SP';
+        $std->CEP = preg_replace('/\D/', '', $empresa['zip_code'] ?? '01234567');
         $std->cPais = 1058;
         $std->xPais = 'BRASIL';
         $std->fone = preg_replace('/\D/', '', $empresa['phone'] ?? '');
@@ -219,7 +231,7 @@ class NFeService
         $std->CST = $produto['cst_icms'] ?? '00';
         
         // Para CST 00 (Tributada integralmente)
-        if ($produto['cst_icms'] === '00') {
+        if (($produto['cst_icms'] ?? '00') === '00') {
             $std->modBC = 3; // Valor da operação
             $std->vBC = $produto['valor_total'];
             $std->pICMS = $produto['aliquota_icms'] ?? 18;
@@ -235,7 +247,7 @@ class NFeService
         $std->item = $numeroItem;
         $std->CST = $produto['cst_pis'] ?? '01';
         
-        if ($produto['cst_pis'] === '01') {
+        if (($produto['cst_pis'] ?? '01') === '01') {
             $std->vBC = $produto['valor_total'];
             $std->pPIS = $produto['aliquota_pis'] ?? 1.65;
             $std->vPIS = ($produto['valor_total'] * ($produto['aliquota_pis'] ?? 1.65)) / 100;
@@ -250,7 +262,7 @@ class NFeService
         $std->item = $numeroItem;
         $std->CST = $produto['cst_cofins'] ?? '01';
         
-        if ($produto['cst_cofins'] === '01') {
+        if (($produto['cst_cofins'] ?? '01') === '01') {
             $std->vBC = $produto['valor_total'];
             $std->pCOFINS = $produto['aliquota_cofins'] ?? 7.6;
             $std->vCOFINS = ($produto['valor_total'] * ($produto['aliquota_cofins'] ?? 7.6)) / 100;
@@ -308,12 +320,6 @@ class NFeService
         LogHelper::info('XML salvo', ['chave' => $chave, 'path' => $xmlPath]);
     }
     
-    private function getProximoNumero()
-    {
-        // Implementar lógica para obter próximo número
-        // Por enquanto, número fixo para teste
-        return 1;
-    }
     
     private function getCodigoUF($uf)
     {
@@ -330,3 +336,33 @@ class NFeService
     }
 }
 ?>
+
+    private function gerarPDF($xml, $chave)
+    {
+        try {
+            $pdfPath = "../storage/pdfs/{$chave}.pdf";
+            
+            // Criar diretório se não existir
+            $dir = dirname($pdfPath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            
+            // Gerar DANFE usando sped-da
+            $danfe = new \NFePHP\DA\NFe\Danfe($xml);
+            $danfe->debugMode(false);
+            $danfe->creditsIntegratorFooter('Sistema NFe - Nexo PDV');
+            
+            // Salvar PDF
+            $pdf = $danfe->render();
+            file_put_contents($pdfPath, $pdf);
+            
+            LogHelper::info('PDF gerado', ['chave' => $chave, 'path' => $pdfPath]);
+            
+            return $pdfPath;
+            
+        } catch (Exception $e) {
+            LogHelper::error('Erro ao gerar PDF', ['erro' => $e->getMessage(), 'chave' => $chave]);
+            return null;
+        }
+    }

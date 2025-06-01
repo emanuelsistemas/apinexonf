@@ -46,39 +46,30 @@ class GerarNFeController
             $cliente = $input['cliente'];
             $produtos = $input['produtos'];
             $totais = $input['totais'];
-            $numeroNFe = $input['numero_nfe'] ?? null;
-            error_log("Número NFe recebido: " . ($numeroNFe ?? "NÃO INFORMADO"));
             $pagamentos = $input['pagamentos'] ?? [];
             
             error_log("Empresa ID recebido: " . $empresa['id']);
             error_log("Certificado path: " . ($empresa['certificado_digital_path'] ?? 'NÃO INFORMADO'));
             
-            // 1. Buscar certificado no Supabase (com fallback para teste)
+            // 1. Buscar certificado no Supabase
             error_log("Buscando certificado no Supabase...");
-            try {
-                $certificadoInfo = $this->supabaseService->buscarCertificadoEmpresa($empresa['id']);
-                error_log("Certificado encontrado: " . ($certificadoInfo ? 'SIM' : 'NÃO'));
-                
-                if ($certificadoInfo) {
-                    // 2. Baixar certificado temporariamente
-                    $certificadoTemp = $this->supabaseService->baixarCertificado($certificadoInfo['certificado_digital_path']);
-                    error_log("Certificado baixado temporariamente: " . $certificadoTemp);
-                }
-            } catch (Exception $e) {
-                error_log("Erro ao buscar certificado: " . $e->getMessage());
-                error_log("Usando modo de teste sem certificado...");
-                $certificadoInfo = null;
-                $certificadoTemp = null;
+            $certificadoInfo = $this->supabaseService->buscarCertificadoEmpresa($empresa['id']);
+            error_log("Certificado encontrado: " . ($certificadoInfo ? 'SIM' : 'NÃO'));
+            
+            if (!$certificadoInfo) {
+                throw new Exception('Certificado digital não encontrado para esta empresa');
             }
+            
+            // 2. Baixar certificado temporariamente
+            $certificadoTemp = $this->supabaseService->baixarCertificado($certificadoInfo['certificado_digital_path']);
+            error_log("Certificado baixado temporariamente: " . $certificadoTemp);
             
             // 3. Gerar NFe
             error_log("Gerando XML da NFe...");
-            $resultadoNFe = $this->nfeService->gerarNFe($empresa, $cliente, $produtos, $totais, $pagamentos, $numeroNFe);
+            $resultadoNFe = $this->nfeService->gerarNFe($empresa, $cliente, $produtos, $totais, $pagamentos);
             
-            // 4. Limpar certificado temporário (se existir)
-            if (isset($certificadoTemp) && $certificadoTemp) {
-                $this->supabaseService->deletarCertificadoTemporario($certificadoTemp);
-            }
+            // 4. Limpar certificado temporário
+            $this->supabaseService->deletarCertificadoTemporario($certificadoTemp);
             
             if (!$resultadoNFe['sucesso']) {
                 throw new Exception('Erro ao gerar NFe: ' . $resultadoNFe['erro']);

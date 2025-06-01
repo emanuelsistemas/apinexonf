@@ -63,7 +63,7 @@ class SupabaseService
     public function baixarCertificado($certificadoPath)
     {
         try {
-            $url = $this->supabaseUrl . '/storage/v1/object/certificadodigital/' . $certificadoPath;
+            $url = $this->supabaseUrl . '/storage/v1/object/certificadodigital/' . urlencode($certificadoPath);
             
             $headers = [
                 'Authorization: Bearer ' . $this->supabaseKey
